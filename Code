@@ -1,0 +1,362 @@
+#include<iostream>
+#include<vector>
+#include<string>
+using namespace std;
+
+class Account {
+protected:
+    string accountHolderName;
+    int accountNumber;
+    double balance;
+    bool isActive;
+    bool mobileBanking;
+public:
+    Account(string accName, int accNumber, double accBalance) {
+        accountHolderName = accName;
+        accountNumber = accNumber;
+        balance = accBalance;
+        isActive=true;
+        mobileBanking=false;
+    }
+    virtual void deposit(double amount) {
+        if(amount<0){
+            cout << "Deposit amount should be positive" << amount << endl;
+            return;
+        }
+        balance += amount;
+        cout << "Deposited: ₹" << amount << endl;
+    }
+    virtual bool withdraw(double amount) {
+        if (!isActive) {
+            cout << "Cannot withdraw from an inactive account!" << endl;
+            return false;
+        }
+        if (amount > balance) {
+            cout << "Insufficient balance!" << endl;
+            return false;
+        }
+        if(amount<0){
+            cout << "Withdraw amount should be positive" << amount << endl;
+            return false;
+        }
+        balance -= amount;
+        cout << "Withdrawn: ₹" << amount << endl;
+        return true;
+    }
+    virtual void displayAccountInfo() const {
+        cout << "Account Number: " << accountNumber << endl;
+        cout << "Account Holder: " << accountHolderName << endl;
+        cout << "Balance: ₹" << balance << endl;
+        cout << "Account Status: " << (isActive ? "Active" : "Inactive") << endl;
+        cout << "Mobile Banking: " << (mobileBanking ? "Enabled" : "Not Enabled") << endl;
+    }
+    void deactivateAccount() {
+        if(!isActive){
+            cout << "Account is already deactive." << endl;
+            return;
+        }
+        isActive = false;
+        cout << "Account " << accountNumber << " has been deactivated." << endl;
+    }
+    void activateAccount() {
+        if(isActive){
+            cout << "Account is already Active." << endl;
+            return;
+        }
+        isActive = true;
+        cout << "Account " << accountNumber << " has been activated." << endl;
+    }
+    void enableMobileBanking() {
+        if (mobileBanking) {
+            cout << "Mobile banking is already enabled for this account." << endl;
+        } else {
+            mobileBanking = true;
+            cout << "Mobile banking enabled successfully!" << endl;
+        }
+    }
+    void disableMobileBanking() {
+        if (!mobileBanking) {
+            cout << "Mobile banking is already disabled for this account." << endl;
+        } else {
+            mobileBanking = false;
+            cout << "Mobile banking disabled successfully!" << endl;
+        }
+    }
+    bool isAccountActive() const {
+        return isActive;
+    }
+    bool isMobileBankingEnabled() const {
+        return mobileBanking;
+    }
+    int getAccountNumber() const {
+        return accountNumber;
+    }
+    double getBalance() const {
+        return balance;
+    }
+};
+
+class SavingsAccount : public Account {
+    double interestRate;
+public:
+    SavingsAccount(string name, int accNumber, double initialBalance, double rate)
+        : Account(name, accNumber, initialBalance), interestRate(rate) {}
+    void applyInterest() {
+        balance += balance * interestRate;
+        cout << "Interest applied. New Balance: ₹" << balance << endl;
+    }
+};
+
+class CurrentAccount : public Account {
+    double overdraftLimit;
+public:
+    CurrentAccount(string name, int accNumber, double initialBalance, double limit)
+        : Account(name, accNumber, initialBalance), overdraftLimit(limit) {}
+    bool withdraw(double amount) override {
+        if (!isActive) {
+            cout << "Cannot withdraw from an inactive account!" << endl;
+            return false;
+        }
+        if (amount > (balance + overdraftLimit)) {
+            cout << "Exceeds overdraft limit!" << endl;
+            return false;
+        }
+        balance -= amount;
+        cout << "Withdrawn: ₹" << amount << endl;
+        return true;
+    }
+    void displayAccountInfo() const override {
+        Account::displayAccountInfo();
+        cout << "Overdraft Limit: ₹" << overdraftLimit << endl;
+    }
+};
+
+class Bank {
+    vector<Account*> accounts;
+    int AccountNumber;
+public:
+    Bank() : AccountNumber(1001) {}
+    void createSavingsAccount(string name, double initialBalance, double interestRate) {
+        SavingsAccount* newAccount = new SavingsAccount(name, AccountNumber, initialBalance, interestRate);
+        accounts.push_back(newAccount);
+        cout << "Savings account created successfully!" << endl;
+        cout << "Your Account Number is: " << AccountNumber << endl;
+        AccountNumber++;
+    }
+    void createCurrentAccount(string name, double initialBalance, double overdraftLimit) {
+        CurrentAccount* newAccount = new CurrentAccount(name, AccountNumber, initialBalance, overdraftLimit);
+        accounts.push_back(newAccount);
+        cout << "Current account created successfully!" << endl;
+        cout << "Your Account Number is: " << AccountNumber << endl;
+        AccountNumber++;
+    }
+    void deposit(int accNumber, double amount) {
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                accounts[i]->deposit(amount);
+                cout << "Updated Balance: ₹" << accounts[i]->getBalance() << endl; // Show updated balance
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+    void withdraw(int accNumber, double amount) {
+        for (int i = 0; i < accounts.size(); ++i) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                if (accounts[i]->withdraw(amount)) {
+                    cout << "Updated Balance: ₹" << accounts[i]->getBalance() << endl; // Show updated balance
+                }
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+    void displayAccountInfo(int accNumber) const {
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                accounts[i]->displayAccountInfo();
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+    void transfer(int fromAccNumber, int toAccNumber, double amount) {
+        Account* fromAccount = nullptr;
+        Account* toAccount = nullptr;
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == fromAccNumber) {
+                fromAccount = accounts[i];
+            }
+            if (accounts[i]->getAccountNumber() == toAccNumber) {
+                toAccount = accounts[i];
+            }
+        }
+        if (!fromAccount || !toAccount) {
+            cout << "One or both account numbers are invalid!" << endl;
+            return;
+        }
+        if (fromAccount->withdraw(amount)) {
+            toAccount->deposit(amount);
+            cout << "Transferred ₹" << amount << " from Account " << fromAccNumber
+                << " to Account " << toAccNumber << endl;
+            cout << "Sender's Updated Balance: ₹" << fromAccount->getBalance() << endl; 
+            cout << "Receiver's Updated Balance: ₹" << toAccount->getBalance() << endl;
+        }
+    }
+    void applyInterest(int accNumber) {
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                SavingsAccount* savingsAccount = dynamic_cast<SavingsAccount*>(accounts[i]);
+                if (savingsAccount) {
+                    savingsAccount->applyInterest();
+                } else {
+                    cout << "Account is not a Savings Account!" << endl;
+                }
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+    void activateAccount(int accNumber) {
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                accounts[i]->activateAccount();
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+    void deactivateAccount(int accNumber) {
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                accounts[i]->deactivateAccount();
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+    void enableMobileBanking(int accNumber) {
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                accounts[i]->enableMobileBanking();
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+    void disableMobileBanking(int accNumber) {
+        for (int i = 0; i < accounts.size(); i++) {
+            if (accounts[i]->getAccountNumber() == accNumber) {
+                accounts[i]->disableMobileBanking();
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
+    }
+};
+
+int main() {
+    Bank bank;
+    int choice, accountNumber, fromAcc, toAcc;
+    double amount, initialBalance, interestRate, overdraftLimit;
+    string name;
+    do {
+        cout << "\nBanking System Menu:\n";
+        cout << "1. Create Savings Account\n";
+        cout << "2. Create Current Account\n";
+        cout << "3. Deposit\n";
+        cout << "4. Withdraw\n";
+        cout << "5. Transfer\n";
+        cout << "6. Display Account Info\n";
+        cout << "7. Activate Account\n";
+        cout << "8. Apply Interest\n";
+        cout << "9. Deactivate Account\n";
+        cout << "10. Enable Mobile Banking\n";
+        cout << "11. Disable Mobile Banking\n";
+        cout << "12. Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+        switch (choice) {
+        case 1:
+            cout << "Enter Account Holder Name: ";
+            cin.ignore();
+            getline(cin, name);
+            cout << "Enter Initial Balance: ";
+            cin >> initialBalance;
+            cout << "Enter Interest Rate (e.g., 0.03 for 3%): ";
+            cin >> interestRate;
+            bank.createSavingsAccount(name, initialBalance, interestRate);
+            break;
+        case 2:
+            cout << "Enter Account Holder Name: ";
+            cin.ignore();
+            getline(cin, name);
+            cout << "Enter Initial Balance: ";
+            cin >> initialBalance;
+            cout << "Enter Overdraft Limit: ";
+            cin >> overdraftLimit;
+            bank.createCurrentAccount(name, initialBalance, overdraftLimit);
+            break;
+        case 3:
+            cout << "Enter Account Number: ";
+            cin >> accountNumber;
+            cout << "Enter Deposit Amount: ";
+            cin >> amount;
+            bank.deposit(accountNumber, amount);
+            break;
+        case 4:
+            cout << "Enter Account Number: ";
+            cin >> accountNumber;
+            cout << "Enter Withdrawal Amount: ";
+            cin >> amount;
+            bank.withdraw(accountNumber, amount);
+            break;
+        case 5:
+            cout << "Enter Sender's Account Number: ";
+            cin >> fromAcc;
+            cout << "Enter Receiver's Account Number: ";
+            cin >> toAcc;
+            cout << "Enter Transfer Amount: ";
+            cin >> amount;
+            bank.transfer(fromAcc, toAcc, amount);
+            break;
+        case 6:
+            cout << "Enter Account Number: ";
+            cin >> accountNumber;
+            bank.displayAccountInfo(accountNumber);
+            break;
+        case 7:
+            cout << "Enter Account Number to Activate: ";
+            cin >> accountNumber;
+            bank.activateAccount(accountNumber);
+            break;
+        case 8:
+            cout << "Enter Account Number to Apply Interest: ";
+            cin >> accountNumber;
+            bank.applyInterest(accountNumber);
+            break;
+        case 9:
+            cout << "Enter Account Number to Deactivate: ";
+            cin >> accountNumber;
+            bank.deactivateAccount(accountNumber);
+            break;
+        case 10:
+            cout << "Enter Account Number to Enable Mobile Banking: ";
+            cin >> accountNumber;
+            bank.enableMobileBanking(accountNumber);
+            break;
+        case 11:
+            cout << "Enter Account Number to Disable Mobile Banking: ";
+            cin >> accountNumber;
+            bank.disableMobileBanking(accountNumber);
+            break;
+        case 12:
+            cout << "Thank You For Banking With Us" << endl << "Exiting..." << endl;
+            break;
+        default:
+            cout << "Invalid choice. Please try again." << endl;
+            break;
+        }
+    } while (choice != 12);
+    return 0;
+}
